@@ -1,0 +1,21 @@
+{
+  "name": "saaran-peli",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Martti Malmi",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "kaboom": "^3000.1.17"
+  },
+  "devDependencies": {
+    "vite": "^7.0.6"
+  }
+}

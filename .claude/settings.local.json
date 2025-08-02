@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(yarn remove:*)",
+      "Bash(yarn add:*)"
+    ],
+    "deny": []
+  }
+}
