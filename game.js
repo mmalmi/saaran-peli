@@ -1,4 +1,7 @@
 import kaboom from 'kaboom'
+import beanSprite from '/sprites/bean.png'
+import ghostySprite from '/sprites/ghosty.png'
+import bgMusicFile from '/sounds/musa.mp3'
 
 // Initialize Kaboom
 kaboom({
@@ -8,16 +11,27 @@ kaboom({
     gravity: 980,
 });
 
-// Load assets
-loadSprite("bean", "https://kaboomjs.com/sprites/bean.png");
-loadSprite("cake", "https://kaboomjs.com/sprites/cake.png");
-loadSprite("ghosty", "https://kaboomjs.com/sprites/ghosty.png");
+// Load assets using imported URLs
+loadSprite("bean", beanSprite);
+loadSprite("ghosty", ghostySprite);
 
 // Load sounds
-loadSound("chomp", "https://kaboomjs.com/sounds/chomp.wav");
+loadSound("bgmusic", bgMusicFile);
+
+// Audio state - load from localStorage
+let isMuted = localStorage.getItem('gameAudioMuted') === 'true';
+let bgMusic = null;
 
 // Game scene
 scene("game", (data) => {
+    // Start background music
+    if (!bgMusic) {
+        bgMusic = play("bgmusic", {
+            loop: true,
+            volume: isMuted ? 0 : 0.5
+        });
+    }
+    
     // Player info
     let playerName = (data && data.playerName) || "Pelaaja";
     
@@ -44,6 +58,33 @@ scene("game", (data) => {
         fixed(),
         color(0, 0, 150),
     ]);
+    
+    // Speaker icon for mute toggle
+    const speakerIcon = add([
+        text(isMuted ? "🔇" : "🔊", {
+            size: 24,
+        }),
+        pos(width() - 50, 20),
+        fixed(),
+        area(),
+        color(100, 100, 100),
+        "speaker"
+    ]);
+    
+    // Unified mute toggle function
+    function toggleMute() {
+        isMuted = !isMuted;
+        localStorage.setItem('gameAudioMuted', isMuted);
+        if (bgMusic) {
+            bgMusic.volume = isMuted ? 0 : 0.5;
+        }
+        speakerIcon.text = isMuted ? "🔇" : "🔊";
+    }
+
+    // Speaker icon click handler
+    speakerIcon.onClick(() => {
+        toggleMute();
+    });
     
     const nameText = add([
         text("Pelaaja: " + playerName, {
@@ -188,6 +229,11 @@ scene("game", (data) => {
 
     onKeyPress("up", () => {
         jumpPower = 15;
+    });
+    
+    // Mute toggle
+    onKeyPress("m", () => {
+        toggleMute();
     });
     
     player.onUpdate(() => {

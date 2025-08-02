@@ -6,7 +6,14 @@
       "Bash(ls:*)",
       "Bash(rm:*)",
       "Bash(yarn remove:*)",
-      "Bash(yarn add:*)"
+      "Bash(yarn add:*)",
+      "Bash(mkdir:*)",
+      "Bash(wget:*)",
+      "Bash(mv:*)",
+      "Bash(python3:*)",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }
