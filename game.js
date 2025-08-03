@@ -2,46 +2,46 @@ import kaboom from 'kaboom'
 import beanSprite from './src/sprites/bean.png'
 import ghostySprite from './src/sprites/ghosty.png'
 
-// Initialize Kaboom
+// Alusta Kaboom
 kaboom({
     width: 800,
     height: 600,
-    background: [135, 206, 235], // Sky blue
+    background: [135, 206, 235], // Taivaansininen
     gravity: 980,
 });
 
-// Load assets using imported URLs
+// Lataa resurssit käyttäen tuotuja URL-osoitteita
 loadSprite("bean", beanSprite);
 loadSprite("ghosty", ghostySprite);
 
-// Load sounds
+// Lataa äänet
 loadSound("bgmusic", "sounds/musa.mp3");
 
-// Audio state - load from localStorage
-let isMuted = localStorage.getItem('gameAudioMuted') === 'true';
-let bgMusic = null;
+// Äänitila - lataa localStoragesta
+let onMykistetty = localStorage.getItem('gameAudioMuted') === 'true';
+let taustaMusiikki = null;
 
-// Game scene
+// Peliskene
 scene("game", (data) => {
-    // Start background music
-    if (!bgMusic) {
-        bgMusic = play("bgmusic", {
+    // Käynnistä taustamusiikki
+    if (!taustaMusiikki) {
+        taustaMusiikki = play("bgmusic", {
             loop: true,
-            volume: isMuted ? 0 : 0.5
+            volume: onMykistetty ? 0 : 0.5
         });
     }
     
-    // Player info
-    let playerName = (data && data.playerName) || "Pelaaja";
+    // Pelaajan tiedot
+    let pelaajanNimi = (data && data.pelaajanNimi) || "Pelaaja";
     
-    // Level system
-    let level = (data && data.level) || 1;
-    let difficultyMultiplier = 1 + (level - 1) * 0.5; // Each level increases speed by 50%
+    // Tasojärjestelmä
+    let taso = (data && data.taso) || 1;
+    let vaikeuskerroin = 1 + (taso - 1) * 0.5; // Jokainen taso lisää nopeutta 50%
     
-    // Score system
-    let score = (data && data.carryScore) || 0;
-    const scoreText = add([
-        text("Pisteet: " + score, {
+    // Pisteytys
+    let pisteet = (data && data.siirrettavatPisteet) || 0;
+    const pisteTeksti = add([
+        text("Pisteet: " + pisteet, {
             size: 24,
         }),
         pos(20, 20),
@@ -49,8 +49,8 @@ scene("game", (data) => {
         color(0, 0, 0),
     ]);
     
-    const levelText = add([
-        text("Taso: " + level, {
+    const tasoTeksti = add([
+        text("Taso: " + taso, {
             size: 20,
         }),
         pos(width() - 120, 20),
@@ -58,35 +58,35 @@ scene("game", (data) => {
         color(0, 0, 150),
     ]);
     
-    // Speaker icon for mute toggle
-    const speakerIcon = add([
-        text(isMuted ? "🔇" : "🔊", {
+    // Kaiutinkuvake äänen kytkemiseen
+    const kaiutinKuvake = add([
+        text(onMykistetty ? "🔇" : "🔊", {
             size: 24,
         }),
         pos(width() - 160, 20),
         fixed(),
         area(),
         color(100, 100, 100),
-        "speaker"
+        "kaiutin"
     ]);
     
-    // Unified mute toggle function
-    function toggleMute() {
-        isMuted = !isMuted;
-        localStorage.setItem('gameAudioMuted', isMuted);
-        if (bgMusic) {
-            bgMusic.volume = isMuted ? 0 : 0.5;
+    // Yhtenäinen äänen kytkemisfunktio
+    function vaihdaMykistys() {
+        onMykistetty = !onMykistetty;
+        localStorage.setItem('gameAudioMuted', onMykistetty);
+        if (taustaMusiikki) {
+            taustaMusiikki.volume = onMykistetty ? 0 : 0.5;
         }
-        speakerIcon.text = isMuted ? "🔇" : "🔊";
+        kaiutinKuvake.text = onMykistetty ? "🔇" : "🔊";
     }
 
-    // Speaker icon click handler
-    speakerIcon.onClick(() => {
-        toggleMute();
+    // Kaiutinkuvakkeen klikkauksen käsittelijä
+    kaiutinKuvake.onClick(() => {
+        vaihdaMykistys();
     });
     
-    const nameText = add([
-        text("Pelaaja: " + playerName, {
+    const nimiTeksti = add([
+        text("Pelaaja: " + pelaajanNimi, {
             size: 18,
         }),
         pos(20, 100),
@@ -94,45 +94,45 @@ scene("game", (data) => {
         color(100, 50, 150),
     ]);
 
-    function updateScore() {
-        score += 10;
-        scoreText.text = "Pisteet: " + score;
+    function paivitaPisteet() {
+        pisteet += 10;
+        pisteTeksti.text = "Pisteet: " + pisteet;
         
-        // Check if reached next 100 point milestone to finish level
-        if (score % 100 === 0 && score > 0) {
-            spawnGoal();
+        // Tarkista onko saavutettu seuraava 100 pisteen raja tason loppumiseksi
+        if (pisteet % 100 === 0 && pisteet > 0) {
+            luoMaali();
         }
     }
     
-    // Goal spawning
-    let goalSpawned = false;
-    function spawnGoal() {
-        if (!goalSpawned) {
-            // Spawn goal flag
+    // Maalin luominen
+    let maaliLuotu = false;
+    function luoMaali() {
+        if (!maaliLuotu) {
+            // Luo maalilippu
             add([
                 text("🏁", {
                     size: 60,
                 }),
-                pos(player.pos.x + 300, height() - 150),
+                pos(pelaaja.pos.x + 300, height() - 150),
                 area(),
-                "goal"
+                "maali"
             ]);
             
-            // Spawn friend waiting at goal
+            // Luo kaveri odottamaan maaliin
             add([
                 sprite("bean"),
-                pos(player.pos.x + 350, height() - 100),
+                pos(pelaaja.pos.x + 350, height() - 100),
                 area(),
-                "friend",
-                "waiting_friend", // Extra tag for easier identification
+                "kaveri",
+                "odottava_kaveri", // Lisätagi helpompaan tunnistukseen
                 {
-                    isWaiting: true
+                    odottaa: true
                 }
             ]);
             
-            goalSpawned = true;
+            maaliLuotu = true;
             
-            // Show goal message
+            // Näytä maaliviesti
             add([
                 text("MAALI ILMESTYI! 🏁", {
                     size: 24,
@@ -146,38 +146,38 @@ scene("game", (data) => {
         }
     }
     
-    // Reset goal when moving to next level
-    function resetGoal() {
-        goalSpawned = false;
-        get("goal").forEach(goal => destroy(goal));
-        get("friend").forEach(friend => destroy(friend));
+    // Nollaa maali seuraavalle tasolle siirryttäessä
+    function nollaaMaali() {
+        maaliLuotu = false;
+        get("maali").forEach(maali => destroy(maali));
+        get("kaveri").forEach(kaveri => destroy(kaveri));
     }
 
-    // Add player
-    const player = add([
+    // Lisää pelaaja
+    const pelaaja = add([
         sprite("bean"),
         pos(200, 300),
         area(),
         body({ gravityScale: 1 }),
-        "player"
+        "pelaaja"
     ]);
 
-    // Camera follows player (only when moving right)
-    let maxCameraX = 0;
-    player.onUpdate(() => {
-        if (player.pos.x > maxCameraX) {
-            maxCameraX = player.pos.x;
+    // Kamera seuraa pelaajaa (vain liikuttaessa oikealle)
+    let maxKameraX = 0;
+    pelaaja.onUpdate(() => {
+        if (pelaaja.pos.x > maxCameraX) {
+            maxCameraX = pelaaja.pos.x;
         }
         camPos(maxCameraX, height() / 2);
     });
 
     // Dynamic terrain generation
-    let lastTerrainX = 0;
-    let platforms = [];
+    let viimeinenMaastoX = 0;
+    let alustat = [];
     
-    function generateTerrain() {
+    function luoMaasto() {
         // Generate ground segments with gaps (pits)
-        for (let x = lastTerrainX; x < lastTerrainX + 2000; x += 200) {
+        for (let x = viimeinenMaastoX; x < viimeinenMaastoX + 2000; x += 200) {
             // 20% chance to create a pit (skip ground segment)
             if (rand() > 0.2) {
                 add([
@@ -186,7 +186,7 @@ scene("game", (data) => {
                     area(),
                     body({ isStatic: true }),
                     color(127, 200, 25),
-                    "terrain"
+                    "maasto"
                 ]);
             } else {
                 // Create a pit marker for death detection
@@ -195,115 +195,115 @@ scene("game", (data) => {
                     pos(x, height() + 100),
                     area(),
                     color(0, 0, 0, 0), // Invisible
-                    "pit"
+                    "kuoppa"
                 ]);
             }
         }
         
-        // Generate random platforms
-        for (let x = lastTerrainX; x < lastTerrainX + 2000; x += rand(150, 400)) {
-            let platform = add([
+        // Generate random alustat
+        for (let x = viimeinenMaastoX; x < viimeinenMaastoX + 2000; x += rand(150, 400)) {
+            let alusta = add([
                 rect(rand(100, 250), 20),
                 pos(x, rand(200, 450)),
                 area(),
                 body({ isStatic: true }),
                 color(255, 180, 255),
-                "platform"
+                "alusta"
             ]);
-            platforms.push(platform);
+            alustat.push(alusta);
         }
         
-        lastTerrainX += 2000;
+        viimeinenMaastoX += 2000;
     }
     
     // Generate initial terrain
-    generateTerrain();
+    luoMaasto();
 
     // Player controls - manual jump
-    let jumpPower = 0;
+    let hyppyVoima = 0;
     
     onKeyPress("space", () => {
-        jumpPower = 15;
+        hyppyVoima = 15;
     });
 
     onKeyPress("up", () => {
-        jumpPower = 15;
+        hyppyVoima = 15;
     });
     
     // Mute toggle
     onKeyPress("m", () => {
-        toggleMute();
+        vaihdaMykistys();
     });
     
-    player.onUpdate(() => {
-        if (jumpPower > 0) {
-            player.pos.y -= jumpPower;
-            jumpPower -= 0.8;
+    pelaaja.onUpdate(() => {
+        if (hyppyVoima > 0) {
+            pelaaja.pos.y -= hyppyVoima;
+            hyppyVoima -= 0.8;
         }
         
         // Manual gravity
-        player.pos.y += 4;
+        pelaaja.pos.y += 4;
         
-        // Generate more terrain as player moves right
-        if (player.pos.x > lastTerrainX - 1000) {
-            generateTerrain();
+        // Generate more terrain as pelaaja moves right
+        if (pelaaja.pos.x > viimeinenMaastoX - 1000) {
+            luoMaasto();
         }
         
-        // Keep player in vertical bounds only (can move horizontally freely)
-        if (player.pos.y < 0) {
-            player.pos.y = 0;
-            jumpPower = 0;
+        // Keep pelaaja in vertical bounds only (can move horizontally freely)
+        if (pelaaja.pos.y < 0) {
+            pelaaja.pos.y = 0;
+            hyppyVoima = 0;
         }
         
         // Check for ground collision and pit detection
         let onGround = false;
-        get("terrain").forEach(terrain => {
-            if (player.pos.x >= terrain.pos.x && 
-                player.pos.x <= terrain.pos.x + 200 &&
-                player.pos.y >= terrain.pos.y - 48 &&
-                player.pos.y <= terrain.pos.y + 10) {
+        get("maasto").forEach(terrain => {
+            if (pelaaja.pos.x >= terrain.pos.x && 
+                pelaaja.pos.x <= terrain.pos.x + 200 &&
+                pelaaja.pos.y >= terrain.pos.y - 48 &&
+                pelaaja.pos.y <= terrain.pos.y + 10) {
                 onGround = true;
-                player.pos.y = terrain.pos.y - 48; // Stop on ground
+                pelaaja.pos.y = terrain.pos.y - 48; // Stop on ground
             }
         });
         
-        // Check platform collision too
-        get("platform").forEach(platform => {
-            if (player.pos.x >= platform.pos.x && 
-                player.pos.x <= platform.pos.x + platform.width &&
-                player.pos.y >= platform.pos.y - 48 &&
-                player.pos.y <= platform.pos.y + 10) {
+        // Check alusta collision too
+        get("alusta").forEach(alusta => {
+            if (pelaaja.pos.x >= alusta.pos.x && 
+                pelaaja.pos.x <= alusta.pos.x + alusta.width &&
+                pelaaja.pos.y >= alusta.pos.y - 48 &&
+                pelaaja.pos.y <= alusta.pos.y + 10) {
                 onGround = true;
-                player.pos.y = platform.pos.y - 48; // Stop on platform
+                pelaaja.pos.y = alusta.pos.y - 48; // Stop on alusta
             }
         });
         
         // If fallen too far and no ground, died in pit
-        if (player.pos.y > height() - 20 && !onGround) {
-            go("gameOver", { finalScore: score, deathReason: "Putosit kuoppaan!" });
+        if (pelaaja.pos.y > height() - 20 && !onGround) {
+            go("peliLoppu", { lopullisetPisteet: score, kuolinsyy: "Putosit kuoppaan!" });
         }
         
-        // Clean up old terrain behind player
-        get("terrain").forEach(terrain => {
-            if (terrain.pos.x < player.pos.x - 1000) {
+        // Clean up old terrain behind pelaaja
+        get("maasto").forEach(terrain => {
+            if (terrain.pos.x < pelaaja.pos.x - 1000) {
                 destroy(terrain);
             }
         });
         
-        get("platform").forEach(platform => {
-            if (platform.pos.x < player.pos.x - 1000) {
-                destroy(platform);
+        get("alusta").forEach(alusta => {
+            if (alusta.pos.x < pelaaja.pos.x - 1000) {
+                destroy(alusta);
             }
         });
         
-        get("pit").forEach(pit => {
-            if (pit.pos.x < player.pos.x - 1000) {
+        get("kuoppa").forEach(pit => {
+            if (pit.pos.x < pelaaja.pos.x - 1000) {
                 destroy(pit);
             }
         });
         
         // Check if current cake is too far behind, spawn new one
-        if (currentCake && currentCake.pos.x < player.pos.x - 800) {
+        if (currentCake && currentCake.pos.x < pelaaja.pos.x - 800) {
             destroy(currentCake);
             currentCake = spawnCake();
         }
@@ -311,13 +311,13 @@ scene("game", (data) => {
 
     onKeyDown("left", () => {
         // Prevent moving left beyond camera view
-        if (player.pos.x > maxCameraX - width()/2 + 50) {
-            player.move(-200, 0);
+        if (pelaaja.pos.x > maxCameraX - width()/2 + 50) {
+            pelaaja.move(-200, 0);
         }
     });
 
     onKeyDown("right", () => {
-        player.move(200, 0);
+        pelaaja.move(200, 0);
     });
 
     // Dynamic enemy spawning system
@@ -328,23 +328,23 @@ scene("game", (data) => {
         let baseSpeed = rand(40, 100);
         let enemy = add([
             sprite("ghosty"),
-            pos(player.pos.x + rand(400, 800), rand(200, 400)),
+            pos(pelaaja.pos.x + rand(400, 800), rand(200, 400)),
             area(),
             body(),
-            "enemy",
+            "vihollinen",
             {
                 dirX: choose([-1, 1]),
                 dirY: choose([-1, 0, 1]),
                 speed: baseSpeed * difficultyMultiplier, // Speed increases with level
-                followPlayer: rand() < 0.3, // 30% chance to follow player
+                followPlayer: rand() < 0.3, // 30% chance to follow pelaaja
             }
         ]);
         
         enemy.onUpdate(() => {
             if (enemy.followPlayer) {
-                // Follow player slowly
-                let dx = player.pos.x - enemy.pos.x;
-                let dy = player.pos.y - enemy.pos.y;
+                // Follow pelaaja slowly
+                let dx = pelaaja.pos.x - enemy.pos.x;
+                let dy = pelaaja.pos.y - enemy.pos.y;
                 let dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist > 50) {
                     enemy.move((dx/dist) * enemy.speed * 0.5, (dy/dist) * enemy.speed * 0.3);
@@ -376,16 +376,16 @@ scene("game", (data) => {
     }
     
     // Enemy management
-    player.onUpdate(() => {
-        // Spawn new enemies as player progresses
-        if (player.pos.x > lastEnemySpawn + 300) {
+    pelaaja.onUpdate(() => {
+        // Spawn new enemies as pelaaja progresses
+        if (pelaaja.pos.x > lastEnemySpawn + 300) {
             spawnEnemy();
-            lastEnemySpawn = player.pos.x;
+            lastEnemySpawn = pelaaja.pos.x;
         }
         
         // Clean up enemies that are too far behind
         enemies = enemies.filter(enemy => {
-            if (enemy.pos.x < player.pos.x - 1200) {
+            if (enemy.pos.x < pelaaja.pos.x - 1200) {
                 destroy(enemy);
                 return false;
             }
@@ -394,51 +394,51 @@ scene("game", (data) => {
     });
 
     // Game over on collision with enemy
-    player.onCollide("enemy", () => {
-        go("gameOver", { finalScore: score, deathReason: "Törmäsit haamuun!" });
+    pelaaja.onCollide("vihollinen", () => {
+        go("peliLoppu", { lopullisetPisteet: score, kuolinsyy: "Törmäsit haamuun!" });
     });
     
     // Goal collision - next level
-    player.onCollide("goal", () => {
-        console.log("Player reached goal!");
+    pelaaja.onCollide("maali", () => {
+        console.log("Player reached maali!");
         
-        // When reaching goal, friend automatically thanks
-        let friends = get("waiting_friend");
-        console.log("Found friends:", friends.length);
+        // When reaching maali, kaveri automatically thanks
+        let kaveris = get("waiting_kaveri");
+        console.log("Found kaveris:", kaveris.length);
         
-        if (friends.length > 0) {
-            let friend = friends[0];
-            console.log("Friend found, isWaiting:", friend.isWaiting);
+        if (kaveris.length > 0) {
+            let kaveri = kaveris[0];
+            console.log("Friend found, isWaiting:", kaveri.isWaiting);
             
-            if (friend.isWaiting) {
+            if (kaveri.isWaiting) {
                 console.log("Friend is thanking!");
                 // Friend thanks
                 add([
                     text("Kiitos että pelastit minut!", {
                         size: 24,
                     }),
-                    pos(friend.pos.x, friend.pos.y - 60),
+                    pos(kaveri.pos.x, kaveri.pos.y - 60),
                     color(0, 150, 200),
                     lifespan(3),
                     fixed(),
                 ]);
                 
-                // Make friend walk away
-                friend.isWaiting = false;
-                friend.onUpdate(() => {
-                    friend.move(100, 0); // Walk to the right
-                    if (friend.pos.x > player.pos.x + 1000) {
-                        destroy(friend); // Remove when far away
+                // Make kaveri walk away
+                kaveri.isWaiting = false;
+                kaveri.onUpdate(() => {
+                    kaveri.move(100, 0); // Walk to the right
+                    if (kaveri.pos.x > pelaaja.pos.x + 1000) {
+                        destroy(kaveri); // Remove when far away
                     }
                 });
             }
         } else {
-            console.log("No friends found at goal");
+            console.log("No kaveris found at maali");
         }
         
-        // Small delay before going to next level so player can see the thanks
+        // Small delay before going to next level so pelaaja can see the thanks
         wait(1, () => {
-            go("nextLevel", { finalScore: score, level: level, playerName: playerName });
+            go("seuraavaTaso", { lopullisetPisteet: score, taso: taso, pelaajanNimi: pelaajaName });
         });
     });
 
@@ -448,9 +448,9 @@ scene("game", (data) => {
             text("🎂", {
                 size: 40,
             }),
-            pos(player.pos.x + rand(300, 600), rand(100, 300)),
+            pos(pelaaja.pos.x + rand(300, 600), rand(100, 300)),
             area(),
-            "cake"
+            "kakku"
         ]);
     }
 
@@ -458,9 +458,9 @@ scene("game", (data) => {
     let currentCake = spawnCake();
 
     // Cake collection
-    player.onCollide("cake", (cake) => {
+    pelaaja.onCollide("kakku", (cake) => {
         destroy(cake);
-        updateScore();
+        paivitaPisteet();
         
         // Create "nam nam" text effect and sound
         add([
@@ -506,7 +506,7 @@ scene("game", (data) => {
 });
 
 // Game over scene
-scene("gameOver", (data) => {
+scene("peliLoppu", (data) => {
     add([
         text("Peli päättyi!", {
             size: 48,
@@ -517,7 +517,7 @@ scene("gameOver", (data) => {
     ]);
     
     add([
-        text(data.deathReason || "Kuolit!", {
+        text(data.kuolinsyy || "Kuolit!", {
             size: 28,
         }),
         pos(width() / 2, height() / 2 - 50),
@@ -526,7 +526,7 @@ scene("gameOver", (data) => {
     ]);
     
     add([
-        text("Lopulliset pisteet: " + (data.finalScore || 0), {
+        text("Lopulliset pisteet: " + (data.lopullisetPisteet || 0), {
             size: 32,
         }),
         pos(width() / 2, height() / 2 - 10),
@@ -544,12 +544,12 @@ scene("gameOver", (data) => {
     ]);
     
     onKeyPress("space", () => {
-        go("nameInput");
+        go("nimenSyotto");
     });
 });
 
 // Next level scene
-scene("nextLevel", (data) => {
+scene("seuraavaTaso", (data) => {
     add([
         text("Taso läpäisty!", {
             size: 48,
@@ -560,7 +560,7 @@ scene("nextLevel", (data) => {
     ]);
     
     add([
-        text("Pisteet: " + (data.finalScore || 0), {
+        text("Pisteet: " + (data.lopullisetPisteet || 0), {
             size: 32,
         }),
         pos(width() / 2, height() / 2 - 20),
@@ -588,19 +588,19 @@ scene("nextLevel", (data) => {
     
     onKeyPress("space", () => {
         go("game", { 
-            level: (data.level || 1) + 1, 
-            carryScore: data.finalScore || 0,
-            playerName: data.playerName || "Pelaaja"
+            level: (data.taso || 1) + 1, 
+            siirrettavatPisteet: data.lopullisetPisteet || 0,
+            pelaajanNimi: data.pelaajanNimi || "Pelaaja"
         });
     });
 });
 
 // Load last used name from localStorage
-let lastPlayerName = localStorage.getItem("saaranPeliPlayerName") || "";
+let edellinenPelaajanNimi = localStorage.getItem("saaranPeliPlayerName") || "";
 
 // Name input scene
-scene("nameInput", () => {
-    let playerName = lastPlayerName; // Start with last used name
+scene("nimenSyotto", () => {
+    let pelaajaName = edellinenPelaajanNimi; // Start with last used name
     
     add([
         text("Saaran Peli", {
@@ -621,7 +621,7 @@ scene("nameInput", () => {
     ]);
     
     const nameDisplay = add([
-        text(playerName || "_", {
+        text(pelaajaName || "_", {
             size: 32,
         }),
         pos(width() / 2, height() / 2),
@@ -630,7 +630,7 @@ scene("nameInput", () => {
     ]);
     
     add([
-        text(lastPlayerName ? "Paina ENTER/VÄLILYÖNTI aloittaaksesi tai muokkaa nimeä" : "Paina ENTER/VÄLILYÖNTI aloittaaksesi", {
+        text(edellinenPelaajanNimi ? "Paina ENTER/VÄLILYÖNTI aloittaaksesi tai muokkaa nimeä" : "Paina ENTER/VÄLILYÖNTI aloittaaksesi", {
             size: 16,
         }),
         pos(width() / 2, height() / 2 + 60),
@@ -640,28 +640,28 @@ scene("nameInput", () => {
     
     // Handle text input
     onCharInput((ch) => {
-        if (playerName.length < 12) { // Max 12 characters
-            playerName += ch;
-            nameDisplay.text = playerName || "_";
+        if (pelaajaName.length < 12) { // Max 12 characters
+            pelaajaName += ch;
+            nameDisplay.text = pelaajaName || "_";
         }
     });
     
     // Handle backspace
     onKeyPress("backspace", () => {
-        if (playerName.length > 0) {
-            playerName = playerName.slice(0, -1);
-            nameDisplay.text = playerName || "_";
+        if (pelaajaName.length > 0) {
+            pelaajaName = pelaajaName.slice(0, -1);
+            nameDisplay.text = pelaajaName || "_";
         }
     });
     
     // Start game
     function startGame() {
-        if (playerName.trim() === "") {
-            playerName = "Pelaaja";
+        if (pelaajaName.trim() === "") {
+            pelaajaName = "Pelaaja";
         }
-        lastPlayerName = playerName; // Remember this name for next time
-        localStorage.setItem("saaranPeliPlayerName", playerName); // Save to localStorage
-        go("game", { playerName: playerName });
+        edellinenPelaajanNimi = pelaajaName; // Remember this name for next time
+        localStorage.setItem("saaranPeliPlayerName", pelaajaName); // Save to localStorage
+        go("game", { pelaajanNimi: pelaajaName });
     }
     
     onKeyPress("enter", () => {
@@ -674,4 +674,4 @@ scene("nameInput", () => {
 });
 
 // Start with name input
-go("nameInput");
+go("nimenSyotto");
