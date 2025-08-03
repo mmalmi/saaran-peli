@@ -7,7 +7,7 @@ kaboom({
     width: 800,
     height: 600,
     background: [135, 206, 235], // Taivaansininen
-    gravity: 980,
+    gravity: 2500,
 });
 
 // Lataa resurssit käyttäen tuotuja URL-osoitteita
@@ -49,7 +49,7 @@ scene("game", (data) => {
         color(0, 0, 0),
     ]);
     
-    const tasoTeksti = add([
+    add([
         text("Taso: " + taso, {
             size: 20,
         }),
@@ -85,7 +85,7 @@ scene("game", (data) => {
         vaihdaMykistys();
     });
     
-    const nimiTeksti = add([
+    add([
         text("Pelaaja: " + pelaajanNimi, {
             size: 18,
         }),
@@ -146,12 +146,6 @@ scene("game", (data) => {
         }
     }
     
-    // Nollaa maali seuraavalle tasolle siirryttäessä
-    function nollaaMaali() {
-        maaliLuotu = false;
-        get("maali").forEach(maali => destroy(maali));
-        get("kaveri").forEach(kaveri => destroy(kaveri));
-    }
 
     // Lisää pelaaja
     const pelaaja = add([
@@ -165,10 +159,10 @@ scene("game", (data) => {
     // Kamera seuraa pelaajaa (vain liikuttaessa oikealle)
     let maxKameraX = 0;
     pelaaja.onUpdate(() => {
-        if (pelaaja.pos.x > maxCameraX) {
-            maxCameraX = pelaaja.pos.x;
+        if (pelaaja.pos.x > maxKameraX) {
+            maxKameraX = pelaaja.pos.x;
         }
-        camPos(maxCameraX, height() / 2);
+        camPos(maxKameraX, height() / 2);
     });
 
     // Dynamic terrain generation
@@ -280,7 +274,7 @@ scene("game", (data) => {
         
         // If fallen too far and no ground, died in pit
         if (pelaaja.pos.y > height() - 20 && !onGround) {
-            go("peliLoppu", { lopullisetPisteet: score, kuolinsyy: "Putosit kuoppaan!" });
+            go("peliLoppu", { lopullisetPisteet: pisteet, kuolinsyy: "Putosit kuoppaan!" });
         }
         
         // Clean up old terrain behind pelaaja
@@ -303,15 +297,15 @@ scene("game", (data) => {
         });
         
         // Check if current cake is too far behind, spawn new one
-        if (currentCake && currentCake.pos.x < pelaaja.pos.x - 800) {
-            destroy(currentCake);
-            currentCake = spawnCake();
+        if (nykyinenKakku && nykyinenKakku.pos.x < pelaaja.pos.x - 800) {
+            destroy(nykyinenKakku);
+            nykyinenKakku = luoKakku();
         }
     });
 
     onKeyDown("left", () => {
         // Prevent moving left beyond camera view
-        if (pelaaja.pos.x > maxCameraX - width()/2 + 50) {
+        if (pelaaja.pos.x > maxKameraX - width()/2 + 50) {
             pelaaja.move(-200, 0);
         }
     });
@@ -335,7 +329,7 @@ scene("game", (data) => {
             {
                 dirX: choose([-1, 1]),
                 dirY: choose([-1, 0, 1]),
-                speed: baseSpeed * difficultyMultiplier, // Speed increases with level
+                speed: baseSpeed * vaikeuskerroin, // Speed increases with level
                 followPlayer: rand() < 0.3, // 30% chance to follow pelaaja
             }
         ]);
@@ -395,7 +389,7 @@ scene("game", (data) => {
 
     // Game over on collision with enemy
     pelaaja.onCollide("vihollinen", () => {
-        go("peliLoppu", { lopullisetPisteet: score, kuolinsyy: "Törmäsit haamuun!" });
+        go("peliLoppu", { lopullisetPisteet: pisteet, kuolinsyy: "Törmäsit haamuun!" });
     });
     
     // Goal collision - next level
@@ -438,12 +432,12 @@ scene("game", (data) => {
         
         // Small delay before going to next level so pelaaja can see the thanks
         wait(1, () => {
-            go("seuraavaTaso", { lopullisetPisteet: score, taso: taso, pelaajanNimi: pelaajaName });
+            go("seuraavaTaso", { lopullisetPisteet: pisteet, taso: taso, pelaajanNimi: pelaajanNimi });
         });
     });
 
     // Spawn new cake function
-    function spawnCake() {
+    function luoKakku() {
         return add([
             text("🎂", {
                 size: 40,
@@ -455,7 +449,7 @@ scene("game", (data) => {
     }
 
     // Initial cake
-    let currentCake = spawnCake();
+    let nykyinenKakku = luoKakku();
 
     // Cake collection
     pelaaja.onCollide("kakku", (cake) => {
@@ -475,13 +469,13 @@ scene("game", (data) => {
         // Try to play sound - fallback to text if sound fails
         try {
             play("chomp");
-        } catch (e) {
+        } catch {
             // Sound failed, text effect is enough
         }
         
         // Spawn new cake after short delay
         wait(0.5, () => {
-            currentCake = spawnCake();
+            nykyinenKakku = luoKakku();
         });
     });
 
@@ -600,7 +594,7 @@ let edellinenPelaajanNimi = localStorage.getItem("saaranPeliPlayerName") || "";
 
 // Name input scene
 scene("nimenSyotto", () => {
-    let pelaajaName = edellinenPelaajanNimi; // Start with last used name
+    let pelaajanNimi = edellinenPelaajanNimi; // Start with last used name
     
     add([
         text("Saaran Peli", {
@@ -621,7 +615,7 @@ scene("nimenSyotto", () => {
     ]);
     
     const nameDisplay = add([
-        text(pelaajaName || "_", {
+        text(pelaajanNimi || "_", {
             size: 32,
         }),
         pos(width() / 2, height() / 2),
@@ -640,28 +634,28 @@ scene("nimenSyotto", () => {
     
     // Handle text input
     onCharInput((ch) => {
-        if (pelaajaName.length < 12) { // Max 12 characters
-            pelaajaName += ch;
-            nameDisplay.text = pelaajaName || "_";
+        if (pelaajanNimi.length < 12) { // Max 12 characters
+            pelaajanNimi += ch;
+            nameDisplay.text = pelaajanNimi || "_";
         }
     });
     
     // Handle backspace
     onKeyPress("backspace", () => {
-        if (pelaajaName.length > 0) {
-            pelaajaName = pelaajaName.slice(0, -1);
-            nameDisplay.text = pelaajaName || "_";
+        if (pelaajanNimi.length > 0) {
+            pelaajanNimi = pelaajanNimi.slice(0, -1);
+            nameDisplay.text = pelaajanNimi || "_";
         }
     });
     
     // Start game
     function startGame() {
-        if (pelaajaName.trim() === "") {
-            pelaajaName = "Pelaaja";
+        if (pelaajanNimi.trim() === "") {
+            pelaajanNimi = "Pelaaja";
         }
-        edellinenPelaajanNimi = pelaajaName; // Remember this name for next time
-        localStorage.setItem("saaranPeliPlayerName", pelaajaName); // Save to localStorage
-        go("game", { pelaajanNimi: pelaajaName });
+        edellinenPelaajanNimi = pelaajanNimi; // Remember this name for next time
+        localStorage.setItem("saaranPeliPlayerName", pelaajanNimi); // Save to localStorage
+        go("game", { pelaajanNimi: pelaajanNimi });
     }
     
     onKeyPress("enter", () => {

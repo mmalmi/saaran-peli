@@ -13,7 +13,8 @@
       "Bash(python3:*)",
       "Bash(cp:*)",
       "Bash(find:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(yarn lint)"
     ],
     "deny": []
   }
