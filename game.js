@@ -1,7 +1,6 @@
 import kaboom from 'kaboom'
-import beanSprite from '/sprites/bean.png'
-import ghostySprite from '/sprites/ghosty.png'
-import bgMusicFile from '/sounds/musa.mp3'
+import beanSprite from './src/sprites/bean.png'
+import ghostySprite from './src/sprites/ghosty.png'
 
 // Initialize Kaboom
 kaboom({
@@ -16,7 +15,7 @@ loadSprite("bean", beanSprite);
 loadSprite("ghosty", ghostySprite);
 
 // Load sounds
-loadSound("bgmusic", bgMusicFile);
+loadSound("bgmusic", "sounds/musa.mp3");
 
 // Audio state - load from localStorage
 let isMuted = localStorage.getItem('gameAudioMuted') === 'true';
@@ -64,7 +63,7 @@ scene("game", (data) => {
         text(isMuted ? "🔇" : "🔊", {
             size: 24,
         }),
-        pos(width() - 50, 20),
+        pos(width() - 160, 20),
         fixed(),
         area(),
         color(100, 100, 100),
