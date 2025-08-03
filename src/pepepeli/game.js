@@ -1,6 +1,6 @@
 import kaboom from 'kaboom'
-import beanSprite from './src/sprites/bean.png'
-import ghostySprite from './src/sprites/ghosty.png'
+import beanSprite from './sprites/bean.png'
+import ghostySprite from './sprites/ghosty.png'
 
 // Alusta Kaboom
 kaboom({
@@ -622,7 +622,7 @@ scene("nimenSyotto", () => {
     let pelaajanNimi = edellinenPelaajanNimi; // Start with last used name
     
     add([
-        text("Saaran Peli", {
+        text("Pepepeli", {
             size: 48,
         }),
         pos(width() / 2, height() / 2 - 120),

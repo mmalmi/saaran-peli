@@ -1,10 +1,13 @@
-# Saaran Peli - Claude Muistiinpanot
+# Peliprojekti - Claude Muistiinpanot
 
 ## Projektin rakenne
-- Kaboom.js-pohjainen 2D-peli
-- Spritet sijaitsevat `src/sprites/` hakemistossa
-- Äänet sijaitsevat `public/sounds/` hakemistossa
-- Koodi on käännetty suomeksi (kommentit ja muuttujat)
+- Juurihakemisto sisältää pelivalikon (index.html)
+- `src/pepepeli/` - Kaboom.js tasohyppelypeli (ent. Saaran Peli)
+  - Spritet sijaitsevat `src/pepepeli/sprites/` hakemistossa
+  - Koodi käännetty suomeksi (kommentit ja muuttujat)
+- `src/ihmissimulaattori/` - Uusi peli (kehitteillä)
+- `public/sounds/` - Äänitiedostot
+- Erilliset HTML-sivut jokaiselle pelille
 
 ## Kehitystyökalut
 
