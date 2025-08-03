@@ -23,8 +23,11 @@ let taustaMusiikki = null;
 
 // Peliskene
 scene("game", (data) => {
-    // Käynnistä taustamusiikki
-    if (!taustaMusiikki) {
+    // Käynnistä taustamusiikki vain jos sitä ei ole tai se on pysäytetty
+    if (!taustaMusiikki || taustaMusiikki.paused) {
+        if (taustaMusiikki) {
+            taustaMusiikki.stop();
+        }
         taustaMusiikki = play("bgmusic", {
             loop: true,
             volume: onMykistetty ? 0 : 0.5
@@ -274,6 +277,10 @@ scene("game", (data) => {
         
         // If fallen too far and no ground, died in pit
         if (pelaaja.pos.y > height() - 20 && !onGround) {
+            if (taustaMusiikki) {
+                taustaMusiikki.stop();
+                taustaMusiikki = null;
+            }
             go("peliLoppu", { lopullisetPisteet: pisteet, kuolinsyy: "Putosit kuoppaan!" });
         }
         
@@ -287,6 +294,20 @@ scene("game", (data) => {
         get("alusta").forEach(alusta => {
             if (alusta.pos.x < pelaaja.pos.x - 1000) {
                 destroy(alusta);
+            }
+        });
+        
+        // Clean up old maali and kaveri behind pelaaja (allow new maali to spawn)
+        get("maali").forEach(maali => {
+            if (maali.pos.x < pelaaja.pos.x - 800) {
+                destroy(maali);
+                maaliLuotu = false; // Reset so new maali can spawn at next 100 points
+            }
+        });
+        
+        get("kaveri").forEach(kaveri => {
+            if (kaveri.pos.x < pelaaja.pos.x - 800) {
+                destroy(kaveri);
             }
         });
         
@@ -389,6 +410,10 @@ scene("game", (data) => {
 
     // Game over on collision with enemy
     pelaaja.onCollide("vihollinen", () => {
+        if (taustaMusiikki) {
+            taustaMusiikki.stop();
+            taustaMusiikki = null;
+        }
         go("peliLoppu", { lopullisetPisteet: pisteet, kuolinsyy: "Törmäsit haamuun!" });
     });
     
