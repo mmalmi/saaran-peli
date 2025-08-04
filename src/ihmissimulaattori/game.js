@@ -7,7 +7,16 @@ import watermelonSprite from '../assets/sprites/watermelon.png'
 import ghostySprite from '../assets/sprites/ghosty.png'
 import butterflySprite from '../assets/sprites/butterfly.png'
 import havupuuSprite from '../assets/sprites/havupuu.png'
-import monsterSound from './sounds/monster-1.wav'
+import monsterSound1 from './sounds/monster-1.wav'
+import monsterSound2 from './sounds/monster-2.wav'
+import monsterSound3 from './sounds/monster-3.wav'
+import monsterSound4 from './sounds/monster-4.wav'
+import monsterSound5 from './sounds/monster-5.wav'
+import monsterSound6 from './sounds/monster-6.wav'
+import monsterSound7 from './sounds/monster-7.wav'
+import monsterSound8 from './sounds/monster-8.wav'
+import monsterSound9 from './sounds/monster-9.wav'
+import monsterSound10 from './sounds/monster-10.wav'
 import musa2Url from '../assets/sounds/musa2.mp3'
 
 // Alusta Kaboom - Don't Starve tyylinen yläviisto
@@ -29,7 +38,16 @@ loadSprite("perhonen", butterflySprite);
 loadSprite("havupuu", havupuuSprite);
 
 // Lataa äänet
-loadSound("monster", monsterSound);
+loadSound("monster-1", monsterSound1);
+loadSound("monster-2", monsterSound2);
+loadSound("monster-3", monsterSound3);
+loadSound("monster-4", monsterSound4);
+loadSound("monster-5", monsterSound5);
+loadSound("monster-6", monsterSound6);
+loadSound("monster-7", monsterSound7);
+loadSound("monster-8", monsterSound8);
+loadSound("monster-9", monsterSound9);
+loadSound("monster-10", monsterSound10);
 loadSound("bgmusic", musa2Url);
 
 // Äänitila - lataa localStoragesta
@@ -69,12 +87,12 @@ scene("peli", () => {
             // Palauta vähintään 0.3, maksimi 1.0
             return 0.3 + valoisuus * 0.7;
         } else {
-            // Yö: vähän valoa tähdistä ja kuusta
+            // Yö: enemmän valoa tähdistä ja kuusta
             // Keskiyöllä pimeämpää kuin aamuyöllä
             let yoTunti = tunti < 6 ? tunti + 24 : tunti;
             const yoKeski = 24; // Keskiyö
             const etaisyysKeskiyosta = Math.abs(yoTunti - yoKeski);
-            return 0.05 + (etaisyysKeskiyosta / 6) * 0.1; // 0.05 - 0.15
+            return 0.2 + (etaisyysKeskiyosta / 6) * 0.15; // 0.2 - 0.35 (vaaleampi kuin ennen)
         }
     }
     
@@ -108,7 +126,6 @@ scene("peli", () => {
             pos(rand(-600, 600), rand(-400, 400)),
             color(rand(30, 60), rand(70, 100), rand(30, 60)),
             opacity(0.4),
-            z(-10),
             { defaultOpacity: 0.4 },
             "tausta"
         ]);
@@ -128,13 +145,21 @@ scene("peli", () => {
     
     // Luo alkupuita
     for (let i = 0; i < 5; i++) {
+        const x = rand(-800, 800);
+        const y = rand(-600, 600);
+        const koko = rand(0.1, 0.3);
+        
         add([
             sprite("havupuu"),
-            pos(rand(-800, 800), rand(-600, 600)),
-            scale(rand(0.1, 0.3)), // Erikokoisia puita
+            pos(x, y),
+            scale(koko),
             opacity(0.9),
-            z(0), // Eksplisiittinen z-arvo
-            { defaultOpacity: 0.9 },
+            { 
+                defaultOpacity: 0.9,
+                alkuperainenX: x,
+                alkuperainenY: y,
+                alkuperainenKoko: koko
+            },
             "puu",
         ]);
     }
@@ -274,7 +299,6 @@ scene("peli", () => {
         scale(0.1), // Skaalaa 10% alkuperäisestä koosta
         area(),
         anchor("center"), // Keskitä sprite sen keskipisteeseen
-        z(0), // Eksplisiittinen z-arvo
         "pelaaja"
     ]);
     
@@ -534,24 +558,11 @@ scene("peli", () => {
                 ),
                 scale(rand(0.1, 0.3)), // Erikokoisia puita
                 opacity(0.9),
-                z(0), // Eksplisiittinen z-arvo
-                { defaultOpacity: 0.9 },
+                    { defaultOpacity: 0.9 },
                 "puu",
             ]);
         }
         
-        // Järjestä kaikki sortable-objektit Y-koordinaatin mukaan
-        get("puu").forEach((puu) => {
-            // Jos pelaaja on puun yläpuolella, puu on edessä
-            if (pelaaja.pos.y < puu.pos.y) {
-                puu.z = 100; // Puu edessä
-            } else {
-                puu.z = -100; // Puu takana
-            }
-        });
-        
-        // Varmista että pelaajalla on keskitason z-arvo
-        pelaaja.z = 0;
         
         // Poista puut jotka ovat liian kaukana
         get("puu").forEach(puu => {
@@ -569,7 +580,7 @@ scene("peli", () => {
     
     // Haamu-järjestelmä
     let haamuTimer = 0;
-    let haamuSpawnAika = rand(300, 900); // 5-15 sekuntia (60fps)
+    let haamuSpawnAika = rand(120, 300); // 2-5 sekuntia (60fps) - tiheämpi alussa
     
     function luoHaamu() {
         // Luo haamu satunnaiseen paikkaan pelaajan ympärille (kaukana)
@@ -659,9 +670,10 @@ scene("peli", () => {
             }
         });
         
-        // Soita monster-ääni kun haamu ilmestyy
+        // Soita satunnainen monster-ääni kun haamu ilmestyy
         try {
-            play("monster", { volume: onMykistetty ? 0 : 0.3 });
+            const monsterNumber = Math.floor(Math.random() * 10) + 1; // 1-10
+            play(`monster-${monsterNumber}`, { volume: onMykistetty ? 0 : 0.3 });
         } catch (e) {
             // Ääni ei latautunut tai toisto epäonnistui
             console.log("Monster-ääni ei toimi:", e);
