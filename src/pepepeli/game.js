@@ -53,6 +53,11 @@ scene("game", (data) => {
         color(0, 0, 0),
     ]);
     
+    // Nopeuskerroin pistemäärän perusteella
+    function laskeNopeuskerroin() {
+        return 1 + (pisteet / 20) * 0.1; // Nopeus kasvaa 10% per 100 pistettä
+    }
+    
     add([
         text("Taso: " + taso, {
             size: 20,
@@ -328,12 +333,12 @@ scene("game", (data) => {
     onKeyDown("left", () => {
         // Prevent moving left beyond camera view
         if (pelaaja.pos.x > maxKameraX - width()/2 + 50) {
-            pelaaja.move(-200, 0);
+            pelaaja.move(-200 * laskeNopeuskerroin(), 0);
         }
     });
 
     onKeyDown("right", () => {
-        pelaaja.move(200, 0);
+        pelaaja.move(200 * laskeNopeuskerroin(), 0);
     });
 
     // Dynamic enemy spawning system
@@ -351,23 +356,26 @@ scene("game", (data) => {
             {
                 dirX: choose([-1, 1]),
                 dirY: choose([-1, 0, 1]),
-                speed: baseSpeed * vaikeuskerroin, // Speed increases with level
+                speed: baseSpeed * vaikeuskerroin * laskeNopeuskerroin(), // Speed increases with level and score
                 followPlayer: rand() < 0.3, // 30% chance to follow pelaaja
             }
         ]);
         
         enemy.onUpdate(() => {
+            // Päivitä vihollisen nopeus jatkuvasti
+            let currentSpeed = baseSpeed * vaikeuskerroin * laskeNopeuskerroin();
+            
             if (enemy.followPlayer) {
                 // Follow pelaaja slowly
                 let dx = pelaaja.pos.x - enemy.pos.x;
                 let dy = pelaaja.pos.y - enemy.pos.y;
                 let dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist > 50) {
-                    enemy.move((dx/dist) * enemy.speed * 0.5, (dy/dist) * enemy.speed * 0.3);
+                    enemy.move((dx/dist) * currentSpeed * 0.5, (dy/dist) * currentSpeed * 0.3);
                 }
             } else {
                 // Random movement
-                enemy.move(enemy.dirX * enemy.speed, enemy.dirY * enemy.speed * 0.5);
+                enemy.move(enemy.dirX * currentSpeed, enemy.dirY * currentSpeed * 0.5);
                 
                 // Bounce off boundaries
                 if (enemy.pos.y > 500 || enemy.pos.y < 150) {
