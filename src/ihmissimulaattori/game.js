@@ -1,10 +1,11 @@
 import kaboom from 'kaboom'
-import jacobSprite from './sprites/ukkeli.png'
-import appleSprite from './sprites/apple.png'
-import meatSprite from './sprites/meat.png'
-import mushroomSprite from './sprites/mushroom.png'
-import watermelonSprite from './sprites/watermelon.png'
-import ghostySprite from './sprites/ghosty.png'
+import jacobSprite from '../assets/sprites/ukkeli_cropped.png'
+import appleSprite from '../assets/sprites/apple.png'
+import meatSprite from '../assets/sprites/meat.png'
+import mushroomSprite from '../assets/sprites/mushroom.png'
+import watermelonSprite from '../assets/sprites/watermelon.png'
+import ghostySprite from '../assets/sprites/ghosty.png'
+import monsterSound from './sounds/monster-1.wav'
 
 // Alusta Kaboom - Don't Starve tyylinen yläviisto
 kaboom({
@@ -22,8 +23,34 @@ loadSprite("sieni", mushroomSprite);
 loadSprite("vesimeloni", watermelonSprite);
 loadSprite("haamu", ghostySprite);
 
+// Lataa äänet
+loadSound("monster", monsterSound);
+
 // Pääpeli
 scene("peli", () => {
+    // Luo alkutausta
+    for (let i = 0; i < 3; i++) {
+        add([
+            rect(rand(2, 6), rand(8, 15)),
+            pos(rand(-600, 600), rand(-400, 400)),
+            color(rand(30, 60), rand(70, 100), rand(30, 60)),
+            opacity(0.4),
+            z(-10),
+            "tausta"
+        ]);
+    }
+    
+    for (let i = 0; i < 2; i++) {
+        add([
+            circle(rand(4, 10)),
+            pos(rand(-700, 700), rand(-500, 500)),
+            color(80, 80, 90),
+            opacity(0.3),
+            z(-9),
+            "tausta"
+        ]);
+    }
+    
     // Kylläisyysjärjestelmä
     let kyllaisyys = 100; // 0-100, kuolee jos 0
     let kyllaisyysVahenee = 0.03; // per frame (hitaampi)
@@ -171,7 +198,7 @@ scene("peli", () => {
         }
     });
     
-    // Ruoan siivous ja spawni
+    // Ruoan ja taustan siivous ja spawni
     onUpdate(() => {
         // Poista ruoat jotka ovat liian kaukana pelaajasta
         get("ruoka").forEach(ruoka => {
@@ -186,12 +213,54 @@ scene("peli", () => {
             }
         });
         
+        // Poista taustaobjektit jotka ovat liian kaukana
+        get("tausta").forEach(tausta => {
+            const etaisyys = Math.sqrt(
+                Math.pow(tausta.pos.x - pelaaja.pos.x, 2) + 
+                Math.pow(tausta.pos.y - pelaaja.pos.y, 2)
+            );
+            
+            // Jos tausta on yli 1000 pikseliä kaukana, poista se
+            if (etaisyys > 1000) {
+                destroy(tausta);
+            }
+        });
+        
         // Varmista että on aina vähän ruokaa näkyvissä
         const ruokaMaara = get("ruoka").length;
         if (ruokaMaara < 2) {
             // Luo vain yksi ruoka jos kentällä on alle 2
             luoRuoka();
         }
+        
+        // Varmista että on aina taustaobjekteja näkyvissä
+        const taustaMaara = get("tausta").length;
+        if (taustaMaara < 8) {
+            // Luo ruohoa pelaajan ympärille
+            for (let i = 0; i < 3; i++) {
+                add([
+                    rect(rand(2, 6), rand(8, 15)),
+                    pos(pelaaja.pos.x + rand(-600, 600), pelaaja.pos.y + rand(-400, 400)),
+                    color(rand(30, 60), rand(70, 100), rand(30, 60)),
+                    opacity(0.4),
+                    z(-10),
+                    "tausta"
+                ]);
+            }
+            
+            // Luo kiviä
+            for (let i = 0; i < 2; i++) {
+                add([
+                    circle(rand(4, 10)),
+                    pos(pelaaja.pos.x + rand(-700, 700), pelaaja.pos.y + rand(-500, 500)),
+                    color(80, 80, 90),
+                    opacity(0.3),
+                    z(-9),
+                    "tausta"
+                ]);
+            }
+        }
+        
     });
     
     // Haamu-järjestelmä
@@ -205,10 +274,10 @@ scene("peli", () => {
         const x = pelaaja.pos.x + Math.cos(kulma) * etaisyys;
         const y = pelaaja.pos.y + Math.sin(kulma) * etaisyys;
         
-        // Satunnainen mörkö: nopea vai hidas
+        // Satunnainen mörkö: nopea vai hitas
         const onNopea = rand() < 0.4; // 40% mahdollisuus nopealle mörölle
-        const nopeus = onNopea ? juoksuNopeus : rand(80, 180); // Nopeat = juoksuvauhti, hitaat = 80-180
-        const koko = onNopea ? 1.2 : rand(1.5, 2.2); // Nopeat keskikokoiset, hitaat isompia
+        const nopeus = onNopea ? juoksuNopeus : rand(120, 220); // Nopeat = juoksuvauhti, hitaat = 120-220 (nopeammat)
+        const koko = onNopea ? rand(1.4, 1.8) : rand(1.5, 2.2); // Nopeat isompia (1.4-1.8), hitaat isompia
         
         const haamu = add([
             sprite("haamu"),
@@ -285,6 +354,14 @@ scene("peli", () => {
                 }
             }
         });
+        
+        // Soita monster-ääni kun haamu ilmestyy
+        try {
+            play("monster", { volume: 0.3 });
+        } catch (e) {
+            // Ääni ei latautunut tai toisto epäonnistui
+            console.log("Monster-ääni ei toimi:", e);
+        }
         
         return haamu;
     }

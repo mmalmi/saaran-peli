@@ -1,6 +1,7 @@
 import kaboom from 'kaboom'
-import beanSprite from './sprites/bean.png'
-import ghostySprite from './sprites/ghosty.png'
+import beanSprite from '../assets/sprites/bean.png'
+import ghostySprite from '../assets/sprites/ghosty.png'
+import musaUrl from '../assets/sounds/musa.mp3'
 
 // Alusta Kaboom
 kaboom({
@@ -15,7 +16,7 @@ loadSprite("bean", beanSprite);
 loadSprite("ghosty", ghostySprite);
 
 // Lataa äänet
-loadSound("bgmusic", "sounds/musa.mp3");
+loadSound("bgmusic", musaUrl);
 
 // Äänitila - lataa localStoragesta
 let onMykistetty = localStorage.getItem('gameAudioMuted') === 'true';

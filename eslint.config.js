@@ -37,6 +37,11 @@ export default [
                 height: "readonly",
                 rand: "readonly",
                 choose: "readonly",
+                opacity: "readonly",
+                z: "readonly",
+                circle: "readonly",
+                scale: "readonly",
+                isKeyDown: "readonly",
                 // Browser globals
                 localStorage: "readonly",
                 console: "readonly"
