@@ -333,12 +333,12 @@ scene("game", (data) => {
     onKeyDown("left", () => {
         // Prevent moving left beyond camera view
         if (pelaaja.pos.x > maxKameraX - width()/2 + 50) {
-            pelaaja.move(-200 * laskeNopeuskerroin(), 0);
+            pelaaja.move(-250 * laskeNopeuskerroin(), 0);
         }
     });
 
     onKeyDown("right", () => {
-        pelaaja.move(200 * laskeNopeuskerroin(), 0);
+        pelaaja.move(250 * laskeNopeuskerroin(), 0);
     });
 
     // Dynamic enemy spawning system

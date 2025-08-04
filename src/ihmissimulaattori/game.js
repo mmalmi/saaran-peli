@@ -5,7 +5,10 @@ import meatSprite from '../assets/sprites/meat.png'
 import mushroomSprite from '../assets/sprites/mushroom.png'
 import watermelonSprite from '../assets/sprites/watermelon.png'
 import ghostySprite from '../assets/sprites/ghosty.png'
+import butterflySprite from '../assets/sprites/butterfly.png'
+import havupuuSprite from '../assets/sprites/havupuu.png'
 import monsterSound from './sounds/monster-1.wav'
+import musa2Url from '../assets/sounds/musa2.mp3'
 
 // Alusta Kaboom - Don't Starve tyylinen yläviisto
 kaboom({
@@ -22,12 +25,30 @@ loadSprite("liha", meatSprite);
 loadSprite("sieni", mushroomSprite);
 loadSprite("vesimeloni", watermelonSprite);
 loadSprite("haamu", ghostySprite);
+loadSprite("perhonen", butterflySprite);
+loadSprite("havupuu", havupuuSprite);
 
 // Lataa äänet
 loadSound("monster", monsterSound);
+loadSound("bgmusic", musa2Url);
+
+// Äänitila - lataa localStoragesta
+let onMykistetty = localStorage.getItem('gameAudioMuted') === 'true';
+let taustaMusiikki = null;
 
 // Pääpeli
 scene("peli", () => {
+    // Käynnistä taustamusiikki vain jos sitä ei ole tai se on pysäytetty
+    if (!taustaMusiikki || taustaMusiikki.paused) {
+        if (taustaMusiikki) {
+            taustaMusiikki.stop();
+        }
+        taustaMusiikki = play("bgmusic", {
+            loop: true,
+            volume: onMykistetty ? 0 : 0.3
+        });
+    }
+    
     // Aikajärjestelmä
     let aika = 540; // Aloitetaan klo 9:00 (9 * 60 = 540 minuuttia)
     let paiva = 1;
@@ -88,6 +109,7 @@ scene("peli", () => {
             color(rand(30, 60), rand(70, 100), rand(30, 60)),
             opacity(0.4),
             z(-10),
+            { defaultOpacity: 0.4 },
             "tausta"
         ]);
     }
@@ -99,7 +121,21 @@ scene("peli", () => {
             color(80, 80, 90),
             opacity(0.3),
             z(-9),
+            { defaultOpacity: 0.3 },
             "tausta"
+        ]);
+    }
+    
+    // Luo alkupuita
+    for (let i = 0; i < 5; i++) {
+        add([
+            sprite("havupuu"),
+            pos(rand(-800, 800), rand(-600, 600)),
+            scale(rand(0.1, 0.3)), // Erikokoisia puita
+            opacity(0.9),
+            z(0), // Eksplisiittinen z-arvo
+            { defaultOpacity: 0.9 },
+            "puu",
         ]);
     }
     
@@ -129,18 +165,56 @@ scene("peli", () => {
         "vari"
     ]);
     
-    // Näkyvyysympyrä yöllä (seuraa pelaajaa)
-    let nakyvyysYmpyra = null;
+    // Näkyvyysympyrä yöllä (seuraa pelaajaa) - piilotettu toistaiseksi
+    // let nakyvyysYmpyra = null;
     
-    // UI
-    const kyllaisyysText = add([
-        text("Kylläisyys: " + Math.floor(kyllaisyys), {
-            size: 24,
+    // UI - Kylläisyyspalkki
+    const palkinLeveys = 200;
+    const palkinKorkeus = 20;
+    const palkinX = 20;
+    const palkinY = 20;
+    
+    // Palkin tausta (läpinäkyvä)
+    add([
+        rect(palkinLeveys, palkinKorkeus),
+        pos(palkinX, palkinY),
+        color(50, 50, 50),
+        opacity(0.2),
+        fixed(),
+        z(101),
+        "palkkitausta"
+    ]);
+    
+    // Palkin reunus
+    add([
+        rect(palkinLeveys + 4, palkinKorkeus + 4),
+        pos(palkinX - 2, palkinY - 2),
+        color(0, 0, 0),
+        opacity(0.5),
+        fixed(),
+        z(100),
+    ]);
+    
+    // Kylläisyyspalkki (verenpunainen)
+    const kyllaisyysPalkki = add([
+        rect(palkinLeveys * (kyllaisyys / 100), palkinKorkeus),
+        pos(palkinX, palkinY),
+        color(180, 0, 0),
+        opacity(1),
+        fixed(),
+        z(102),
+        "kyllaisyyspalkki"
+    ]);
+    
+    // Kylläisyysteksti palkin alla
+    add([
+        text("Kylläisyys", {
+            size: 16,
         }),
-        pos(20, 20),
+        pos(palkinX, palkinY + palkinKorkeus + 5),
         fixed(),
         color(255, 255, 255),
-        z(101), // Varjon päällä
+        z(101),
     ]);
     
     // Päivälaskuri
@@ -154,15 +228,34 @@ scene("peli", () => {
         z(101), // Varjon päällä
     ]);
     
-    add([
-        text("Kerää ruokaa selviytyäksesi!", {
-            size: 18,
+    // Kaiutinkuvake äänen kytkemiseen
+    const kaiutinKuvake = add([
+        text(onMykistetty ? "🔇" : "🔊", {
+            size: 24,
         }),
-        pos(20, 50),
+        pos(width() - 160, 20),
         fixed(),
-        color(200, 200, 200),
-        z(101), // Varjon päällä
+        area(),
+        color(255, 255, 255),
+        z(101),
+        "kaiutin"
     ]);
+    
+    // Yhtenäinen äänen kytkemisfunktio
+    function vaihdaMykistys() {
+        onMykistetty = !onMykistetty;
+        localStorage.setItem('gameAudioMuted', onMykistetty);
+        if (taustaMusiikki) {
+            taustaMusiikki.volume = onMykistetty ? 0 : 0.3;
+        }
+        kaiutinKuvake.text = onMykistetty ? "🔇" : "🔊";
+    }
+
+    // Kaiutinkuvakkeen klikkauksen käsittelijä
+    kaiutinKuvake.onClick(() => {
+        vaihdaMykistys();
+    });
+    
     
     add([
         text("Nuolinäppäimet = liikkuminen, Shift = juoksu", {
@@ -181,6 +274,7 @@ scene("peli", () => {
         scale(0.1), // Skaalaa 10% alkuperäisestä koosta
         area(),
         anchor("center"), // Keskitä sprite sen keskipisteeseen
+        z(0), // Eksplisiittinen z-arvo
         "pelaaja"
     ]);
     
@@ -235,6 +329,11 @@ scene("peli", () => {
         pelaaja.move(nopeus, 0); // Oikealle
     });
     
+    // Mute toggle
+    onKeyPress("m", () => {
+        vaihdaMykistys();
+    });
+    
     // Ruoan luominen
     const ruokaSpawni = [
         { sprite: "omena", arvo: 15 },
@@ -261,15 +360,71 @@ scene("peli", () => {
         ]);
     }
     
+    // Perhosten spawn-systeemi
+    function luoPerhonen() {
+        const x = pelaaja.pos.x + rand(-600, 600);
+        const y = pelaaja.pos.y + rand(-400, 400);
+        
+        const perhonen = add([
+            sprite("perhonen"),
+            pos(x, y),
+            scale(0.3 + rand(0.2)), // Erikokoisia perhosia
+            opacity(0.7),
+            area(),
+            z(2), // Ruoan yläpuolella
+            { defaultOpacity: 0.7 },
+            "perhonen",
+        ]);
+        
+        // Lisää custom data perhoselle
+        perhonen.lentoKulma = rand(0, Math.PI * 2);
+        perhonen.lentoNopeus = rand(20, 40);
+        perhonen.aaltoKerroin = rand(0.5, 2);
+        perhonen.aikaleima = 0;
+        
+        // Lisää onUpdate suoraan perhoselle
+        perhonen.onUpdate(() => {
+            perhonen.aikaleima += 0.1;
+            
+            // Siniaaltolento
+            const aaltoLiike = Math.sin(perhonen.aikaleima * perhonen.aaltoKerroin) * 30;
+            
+            // Liiku lentokulmaan
+            const dx = Math.cos(perhonen.lentoKulma) * perhonen.lentoNopeus;
+            const dy = Math.sin(perhonen.lentoKulma) * perhonen.lentoNopeus + aaltoLiike;
+            
+            perhonen.move(dx, dy);
+            
+            // Satunnaisesti vaihda suuntaa
+            if (rand() < 0.02) {
+                perhonen.lentoKulma += rand(-Math.PI/4, Math.PI/4);
+            }
+            
+            // Tuhoudu jos liian kaukana pelaajasta
+            const etaisyys = perhonen.pos.dist(pelaaja.pos);
+            if (etaisyys > 1000) {
+                destroy(perhonen);
+            }
+        });
+        
+        return perhonen;
+    }
+    
     // Luo alkuruokaa pelaajan ympärille (hyvin vähän)
     for (let i = 0; i < 2; i++) {
         luoRuoka();
     }
     
+    // Luo muutama perhonen alkuun
+    for (let i = 0; i < 3; i++) {
+        luoPerhonen();
+    }
+    
     // Ruoan kerääminen
     pelaaja.onCollide("ruoka", (ruoka) => {
         kyllaisyys = Math.min(100, kyllaisyys + ruoka.arvo);
-        kyllaisyysText.text = "Kylläisyys: " + Math.floor(kyllaisyys);
+        // Päivitä palkki
+        kyllaisyysPalkki.width = palkinLeveys * (kyllaisyys / 100);
         
         // Näytä mitä kerättiin
         add([
@@ -289,6 +444,7 @@ scene("peli", () => {
             luoRuoka();
         }
     });
+    
     
     // Ruoan ja taustan siivous ja spawni
     onUpdate(() => {
@@ -336,6 +492,7 @@ scene("peli", () => {
                     color(rand(30, 60), rand(70, 100), rand(30, 60)),
                     opacity(0.4),
                     z(-10),
+                    { defaultOpacity: 0.4 },
                     "tausta"
                 ]);
             }
@@ -348,10 +505,65 @@ scene("peli", () => {
                     color(80, 80, 90),
                     opacity(0.3),
                     z(-9),
+                    { defaultOpacity: 0.3 },
                     "tausta"
                 ]);
             }
         }
+        
+        // Varmista että on aina perhosia näkyvissä
+        const perhosMaara = get("perhonen").length;
+        if (perhosMaara < 3 && rand() < 0.02) { // 2% mahdollisuus per frame
+            luoPerhonen();
+        }
+        
+        // Varmista että on aina puita näkyvissä
+        const puuMaara = get("puu").length;
+        if (puuMaara < 5) {
+            // Spawn puut näkyvän alueen ulkopuolelle
+            const minEtaisyys = 600; // Minimi etäisyys näkyvästä alueesta
+            const maxEtaisyys = 1000;
+            const etaisyys = rand(minEtaisyys, maxEtaisyys);
+            const kulma = rand(0, Math.PI * 2);
+            
+            add([
+                sprite("havupuu"),
+                pos(
+                    pelaaja.pos.x + Math.cos(kulma) * etaisyys,
+                    pelaaja.pos.y + Math.sin(kulma) * etaisyys
+                ),
+                scale(rand(0.1, 0.3)), // Erikokoisia puita
+                opacity(0.9),
+                z(0), // Eksplisiittinen z-arvo
+                { defaultOpacity: 0.9 },
+                "puu",
+            ]);
+        }
+        
+        // Järjestä kaikki sortable-objektit Y-koordinaatin mukaan
+        get("puu").forEach((puu) => {
+            // Jos pelaaja on puun yläpuolella, puu on edessä
+            if (pelaaja.pos.y < puu.pos.y) {
+                puu.z = 100; // Puu edessä
+            } else {
+                puu.z = -100; // Puu takana
+            }
+        });
+        
+        // Varmista että pelaajalla on keskitason z-arvo
+        pelaaja.z = 0;
+        
+        // Poista puut jotka ovat liian kaukana
+        get("puu").forEach(puu => {
+            const etaisyys = Math.sqrt(
+                Math.pow(puu.pos.x - pelaaja.pos.x, 2) + 
+                Math.pow(puu.pos.y - pelaaja.pos.y, 2)
+            );
+            
+            if (etaisyys > 1200) {
+                destroy(puu);
+            }
+        });
         
     });
     
@@ -449,7 +661,7 @@ scene("peli", () => {
         
         // Soita monster-ääni kun haamu ilmestyy
         try {
-            play("monster", { volume: 0.3 });
+            play("monster", { volume: onMykistetty ? 0 : 0.3 });
         } catch (e) {
             // Ääni ei latautunut tai toisto epäonnistui
             console.log("Monster-ääni ei toimi:", e);
@@ -460,6 +672,10 @@ scene("peli", () => {
     
     // Haamu collision - kuolema
     pelaaja.onCollide("haamu", () => {
+        if (taustaMusiikki) {
+            taustaMusiikki.stop();
+            taustaMusiikki = null;
+        }
         go("kuolema", { syy: "morkko" });
     });
     
@@ -486,14 +702,16 @@ scene("peli", () => {
         const variVoimakkuus = 1 - (savy.g / 255); // Mitä vähemmän vihreää, sitä punertavampi
         variKerros.opacity = variVoimakkuus * 0.3; // Max 30% läpinäkyvyys
         
-        // Yöllä luodaan näkyvyysympyrä
+        // Valoympyrä piilotettu toistaiseksi
+        /*
         if (valoisuus < 0.5 && !nakyvyysYmpyra) {
+            const sade = 150 + valoisuus * 250;
             nakyvyysYmpyra = add([
-                circle(200),
-                pos(pelaaja.pos.x, pelaaja.pos.y),
-                color(0, 0, 0),
-                opacity(0),
-                z(98), // Varjon ja värikerroksen alla
+                circle(sade),
+                pos(pelaaja.pos),
+                color(255, 220, 150), // Lämmin keltainen valo
+                opacity(0.15 * (1 - valoisuus)), // Himmeä valo
+                z(101), // Varjon päällä
                 "nakyvyys"
             ]);
         } else if (valoisuus >= 0.5 && nakyvyysYmpyra) {
@@ -501,41 +719,61 @@ scene("peli", () => {
             nakyvyysYmpyra = null;
         }
         
-        // Päivitä näkyvyysympyrän sijainti
+        // Päivitä valoympyrän sijainti ja koko
         if (nakyvyysYmpyra) {
             nakyvyysYmpyra.pos = pelaaja.pos;
-            // Mitä pimeämpää, sitä pienempi näkyvyysalue
-            const nakyvyysSade = 150 + valoisuus * 250; // 150-400 pikseliä
-            nakyvyysYmpyra.radius = nakyvyysSade;
+            const uusiSade = 150 + valoisuus * 250;
+            nakyvyysYmpyra.radius = uusiSade;
+            nakyvyysYmpyra.opacity = 0.15 * (1 - valoisuus);
         }
+        */
         // Juokseminen kuluttaa paljon enemmän kylläisyyttä
         const kulutus = juoksee ? kyllaisyysVahenee * 6 : kyllaisyysVahenee;
         kyllaisyys -= kulutus;
-        kyllaisyysText.text = "Kylläisyys: " + Math.floor(kyllaisyys);
         
-        // Kylläisyyden värin muutos
-        if (kyllaisyys > 60) {
-            kyllaisyysText.color = [0, 255, 0]; // Vihreä
-        } else if (kyllaisyys > 30) {
-            kyllaisyysText.color = [255, 255, 0]; // Keltainen
-        } else {
-            kyllaisyysText.color = [255, 0, 0]; // Punainen
-        }
+        // Päivitä palkki
+        kyllaisyysPalkki.width = Math.max(0, palkinLeveys * (kyllaisyys / 100));
+        
+        // Palkki pysyy vihreänä (ei tarvitse päivittää, koska väri on jo asetettu)
         
         // Kuolema kylläisyyden loppuessa
         if (kyllaisyys <= 0) {
+            if (taustaMusiikki) {
+                taustaMusiikki.stop();
+                taustaMusiikki = null;
+            }
             go("kuolema", { syy: "nalka" });
         }
         
-        // Haamu spawni timer
-        haamuTimer++;
-        if (haamuTimer >= haamuSpawnAika) {
-            // Varmista että ei ole jo haamua kentällä
-            if (get("haamu").length === 0) {
-                luoHaamu();
+        // Haamu spawni timer - vain yöllä
+        const tunti = (aika / 60) % 24;
+        const onYo = tunti < 6 || tunti > 18; // Yö on klo 18-06
+        
+        if (onYo) {
+            haamuTimer++;
+            if (haamuTimer >= haamuSpawnAika) {
+                // Salli useampi haamu, mutta rajoita määrää
+                const maxHaamut = Math.min(5, 1 + Math.floor(paiva / 2)); // Max 5, kasvaa päivien myötä
+                if (get("haamu").length < maxHaamut) {
+                    luoHaamu();
+                }
+                haamuTimer = 0;
+                
+                // Nopeutuva spawni: vähenee 20 framella joka kerta, minimi 60 framea (1 sekunti)
+                const vahenema = 20;
+                const minimiAika = 60; // 1 sekunti
+                const uusiAika = Math.max(minimiAika, haamuSpawnAika - vahenema);
+                
+                // Aseta uusi spawn-aika
+                haamuSpawnAika = rand(uusiAika, uusiAika + 180); // Vaihtelua 3 sekuntia
             }
+        } else {
+            // Päivällä poista kaikki haamut
+            get("haamu").forEach(haamu => {
+                destroy(haamu);
+            });
             haamuTimer = 0;
-            haamuSpawnAika = rand(300, 900); // Seuraava spawni 5-15 sekunnin päästä
+            // Spawn-aika säilyy samana, ei resetoida
         }
     });
 });
