@@ -28,6 +28,58 @@ loadSound("monster", monsterSound);
 
 // Pääpeli
 scene("peli", () => {
+    // Aikajärjestelmä
+    let aika = 540; // Aloitetaan klo 9:00 (9 * 60 = 540 minuuttia)
+    let paiva = 1;
+    const aikaKerroin = 0.02; // Paljon pienempi kerroin pehmeää muutosta varten
+    const aikaKompensaatio = 10; // Kompensoi pientä aikakerrointa
+    
+    // Lasketaan kellonajan mukaan valoisuus ja värisävy
+    function laskeValoisuus(aika) {
+        const tunti = (aika / 60) % 24;
+        
+        // Käytetään sini-funktiota simuloimaan auringon kaarta
+        // Aurinko nousee klo 6 ja laskee klo 18 (12h päivä)
+        if (tunti >= 6 && tunti <= 18) {
+            // Normalisoi tunti välille 0-1 (0 = auringonnousu, 1 = auringonlasku)
+            const normalisoituTunti = (tunti - 6) / 12;
+            // Sini-funktio antaa kaarevan valoisuuden
+            const valoisuus = Math.sin(normalisoituTunti * Math.PI);
+            // Palauta vähintään 0.3, maksimi 1.0
+            return 0.3 + valoisuus * 0.7;
+        } else {
+            // Yö: vähän valoa tähdistä ja kuusta
+            // Keskiyöllä pimeämpää kuin aamuyöllä
+            let yoTunti = tunti < 6 ? tunti + 24 : tunti;
+            const yoKeski = 24; // Keskiyö
+            const etaisyysKeskiyosta = Math.abs(yoTunti - yoKeski);
+            return 0.05 + (etaisyysKeskiyosta / 6) * 0.1; // 0.05 - 0.15
+        }
+    }
+    
+    // Lasketaan värisävy kellonajan mukaan
+    function laskeVarisavy(aika) {
+        const tunti = (aika / 60) % 24;
+        
+        // Aamulla (5-8) ja illalla (17-20) punertava sävy
+        if ((tunti >= 5 && tunti <= 8) || (tunti >= 17 && tunti <= 20)) {
+            let punertuva = 0;
+            if (tunti >= 5 && tunti <= 8) {
+                // Aamu: voimakkain klo 6
+                punertuva = 1 - Math.abs(tunti - 6) / 2;
+            } else {
+                // Ilta: voimakkain klo 18.5
+                punertuva = 1 - Math.abs(tunti - 18.5) / 2;
+            }
+            return {
+                r: 255,
+                g: 100 + (155 * (1 - punertuva)),
+                b: 50 + (205 * (1 - punertuva))
+            };
+        }
+        // Päivällä ja yöllä neutraali
+        return { r: 255, g: 255, b: 255 };
+    }
     // Luo alkutausta
     for (let i = 0; i < 3; i++) {
         add([
@@ -55,6 +107,31 @@ scene("peli", () => {
     let kyllaisyys = 100; // 0-100, kuolee jos 0
     let kyllaisyysVahenee = 0.03; // per frame (hitaampi)
     
+    // Varjokerros yötä varten
+    const varjoKerros = add([
+        rect(width(), height()),
+        pos(0, 0),
+        color(0, 0, 0),
+        opacity(0),
+        fixed(),
+        z(100),
+        "varjo"
+    ]);
+    
+    // Värikerros aamulle ja illalle
+    const variKerros = add([
+        rect(width(), height()),
+        pos(0, 0),
+        color(255, 255, 255),
+        opacity(0),
+        fixed(),
+        z(99),
+        "vari"
+    ]);
+    
+    // Näkyvyysympyrä yöllä (seuraa pelaajaa)
+    let nakyvyysYmpyra = null;
+    
     // UI
     const kyllaisyysText = add([
         text("Kylläisyys: " + Math.floor(kyllaisyys), {
@@ -63,6 +140,18 @@ scene("peli", () => {
         pos(20, 20),
         fixed(),
         color(255, 255, 255),
+        z(101), // Varjon päällä
+    ]);
+    
+    // Päivälaskuri
+    const paivaText = add([
+        text("Päivä " + paiva, {
+            size: 20,
+        }),
+        pos(width() - 120, 20),
+        fixed(),
+        color(255, 255, 255),
+        z(101), // Varjon päällä
     ]);
     
     add([
@@ -72,6 +161,7 @@ scene("peli", () => {
         pos(20, 50),
         fixed(),
         color(200, 200, 200),
+        z(101), // Varjon päällä
     ]);
     
     add([
@@ -81,6 +171,7 @@ scene("peli", () => {
         pos(20, height() - 40),
         fixed(),
         color(150, 150, 150),
+        z(101), // Varjon päällä
     ]);
     
     // Pelaaja (ukkeli-hahmo) - skaalattu pienemmäksi
@@ -188,6 +279,7 @@ scene("peli", () => {
             pos(ruoka.pos.x, ruoka.pos.y - 30),
             color(0, 255, 0),
             lifespan(1.5),
+            z(102), // Varjon ja UI:n päällä
         ]);
         
         destroy(ruoka);
@@ -371,8 +463,51 @@ scene("peli", () => {
         go("kuolema", { syy: "morkko" });
     });
     
-    // Kylläisyyden hallinta
+    // Kylläisyyden ja ajan hallinta
     onUpdate(() => {
+        // Päivitä aika kompensoituna
+        aika += aikaKerroin * aikaKompensaatio;
+        if (aika >= 1440) {
+            aika = 0;
+            paiva++;
+            paivaText.text = "Päivä " + paiva;
+        }
+        
+        // Päivitä kellonaika (ei näytetä)
+        
+        // Päivitä valoisuus ja värisävy joka framella
+        const valoisuus = laskeValoisuus(aika);
+        varjoKerros.opacity = 1 - valoisuus;
+        
+        // Päivitä värisävy
+        const savy = laskeVarisavy(aika);
+        variKerros.color = [savy.r, savy.g, savy.b];
+        // Värikerroksen läpinäkyvyys riippuu siitä kuinka paljon väriä tarvitaan
+        const variVoimakkuus = 1 - (savy.g / 255); // Mitä vähemmän vihreää, sitä punertavampi
+        variKerros.opacity = variVoimakkuus * 0.3; // Max 30% läpinäkyvyys
+        
+        // Yöllä luodaan näkyvyysympyrä
+        if (valoisuus < 0.5 && !nakyvyysYmpyra) {
+            nakyvyysYmpyra = add([
+                circle(200),
+                pos(pelaaja.pos.x, pelaaja.pos.y),
+                color(0, 0, 0),
+                opacity(0),
+                z(98), // Varjon ja värikerroksen alla
+                "nakyvyys"
+            ]);
+        } else if (valoisuus >= 0.5 && nakyvyysYmpyra) {
+            destroy(nakyvyysYmpyra);
+            nakyvyysYmpyra = null;
+        }
+        
+        // Päivitä näkyvyysympyrän sijainti
+        if (nakyvyysYmpyra) {
+            nakyvyysYmpyra.pos = pelaaja.pos;
+            // Mitä pimeämpää, sitä pienempi näkyvyysalue
+            const nakyvyysSade = 150 + valoisuus * 250; // 150-400 pikseliä
+            nakyvyysYmpyra.radius = nakyvyysSade;
+        }
         // Juokseminen kuluttaa paljon enemmän kylläisyyttä
         const kulutus = juoksee ? kyllaisyysVahenee * 6 : kyllaisyysVahenee;
         kyllaisyys -= kulutus;
